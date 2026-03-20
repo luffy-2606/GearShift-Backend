@@ -140,19 +140,22 @@ router.get('/google/callback', (req, res) => {
     });
   }
   
-  passport.authenticate('google', { session: false })(req, res, (err) => {
-    if (err) {
+  passport.authenticate('google', { session: false })(req, res, (err, user) => {
+    if (err || !user) {
+      console.error('Google OAuth error:', err);
       return res.redirect(`http://localhost:3000/login?error=google_auth_failed`);
     }
     
     const token = jwt.sign(
-      { userId: req.user._id, email: req.user.email, role: req.user.role },
+      { userId: user.id, email: user.email, role: user.role },
       process.env.JWT_SECRET,
       { expiresIn: '24h' }
     );
 
+    console.log('Google OAuth successful for:', user.email);
+    
     // Redirect to frontend with token
-    res.redirect(`http://localhost:3000/auth/success?token=${token}`);
+    res.redirect(`http://localhost:3000/login?token=${token}&success=true`);
   });
 });
 
