@@ -8,7 +8,7 @@ CREATE TABLE users (
   password VARCHAR(255) NOT NULL,
   first_name VARCHAR(100) NOT NULL,
   last_name VARCHAR(100) NOT NULL,
-  role VARCHAR(20) DEFAULT 'user' CHECK (role IN ('user', 'admin')),
+  role VARCHAR(20) DEFAULT 'user' CHECK (role IN ('user', 'mechanic', 'admin')),
   status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'suspended')),
   google_id VARCHAR(255) UNIQUE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),

@@ -1,5 +1,5 @@
 const bcrypt = require('bcryptjs');
-const { supabase } = require('../config/supabase');
+const { supabaseAdmin } = require('../config/supabase');
 
 class User {
   static async create(userData) {
@@ -10,7 +10,7 @@ class User {
     const hashedPassword = await bcrypt.hash(password, salt);
     
     // Create user in Supabase
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('users')
       .insert([{
         email: email.toLowerCase(),
@@ -29,7 +29,7 @@ class User {
   }
 
   static async findByEmail(email) {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('users')
       .select('*')
       .eq('email', email.toLowerCase())
@@ -40,7 +40,7 @@ class User {
   }
 
   static async findById(id) {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('users')
       .select('*')
       .eq('id', id)
@@ -51,7 +51,7 @@ class User {
   }
 
   static async findAll() {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('users')
       .select('id, email, first_name, last_name, role, status, created_at, last_login')
       .order('created_at', { ascending: false });
@@ -61,26 +61,49 @@ class User {
   }
 
   static async updateById(id, updateData) {
-    // Map frontend field names to database column names
     const mappedData = {};
     if (updateData.first_name) mappedData.first_name = updateData.first_name;
-    if (updateData.last_name) mappedData.last_name = updateData.last_name;
-    if (updateData.status) mappedData.status = updateData.status;
+    if (updateData.last_name)  mappedData.last_name  = updateData.last_name;
+    if (updateData.status)     mappedData.status     = updateData.status;
+    if (updateData.role)       mappedData.role       = updateData.role;
     if (updateData.last_login) mappedData.last_login = updateData.last_login;
-    
-    const { data, error } = await supabase
+
+    const { data, error } = await supabaseAdmin
       .from('users')
       .update(mappedData)
       .eq('id', id)
       .select()
       .single();
-    
+
+    if (error) throw error;
+    return data;
+  }
+
+  // Create a user directly (used by admin panel). 
+  static async adminCreate({ email, password, first_name, last_name, role = 'user', status = 'active' }) {
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    const { data, error } = await supabaseAdmin
+      .from('users')
+      .insert([{
+        email: email.toLowerCase(),
+        password: hashedPassword,
+        first_name,
+        last_name,
+        role,
+        status,
+        created_at: new Date().toISOString(),
+      }])
+      .select()
+      .single();
+
     if (error) throw error;
     return data;
   }
 
   static async deleteById(id) {
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('users')
       .delete()
       .eq('id', id);
@@ -105,7 +128,7 @@ class User {
     // If a concurrent request inserted the row, we catch the unique constraint error
     // and return/update the existing profile instead of failing.
     try {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAdmin
         .from('users')
         .insert([{
           email: normalizedEmail,
@@ -137,7 +160,7 @@ class User {
 
       if (Object.keys(updates).length === 0) return existing;
 
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAdmin
         .from('users')
         .update(updates)
         .eq('id', existing.id)
