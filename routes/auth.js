@@ -3,9 +3,7 @@ const router = express.Router();
 const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
-const passport = require('passport');
 const { supabaseAdmin } = require('../config/supabase');
-require('../config/passport');
 
 // Register with email and password
 router.post('/register', [
@@ -192,42 +190,6 @@ router.post('/supabase/exchange', async (req, res) => {
     console.error('Supabase exchange error:', error);
     res.status(500).json({ message: 'Server error during token exchange' });
   }
-});
-
-// Google OAuth routes
-router.get('/google', (req, res) => {
-  if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
-    return res.status(503).json({ 
-      message: 'Google OAuth is not configured. Please use email/password registration.' 
-    });
-  }
-  
-  passport.authenticate('google', {
-    scope: ['profile', 'email']
-  })(req, res);
-});
-
-router.get('/google/callback', (req, res) => {
-  if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
-    return res.status(503).json({ 
-      message: 'Google OAuth is not configured. Please use email/password registration.' 
-    });
-  }
-  
-  passport.authenticate('google', { session: false })(req, res, (err) => {
-    if (err) {
-      return res.redirect(`http://localhost:3000/login?error=google_auth_failed`);
-    }
-    
-    const token = jwt.sign(
-      { userId: req.user._id, email: req.user.email, role: req.user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: '24h' }
-    );
-
-    // Redirect to frontend with token
-    res.redirect(`http://localhost:3000/auth/success?token=${token}`);
-  });
 });
 
 module.exports = router;
