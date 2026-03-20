@@ -11,8 +11,8 @@ require('../config/passport');
 router.post('/register', [
   body('email').isEmail().normalizeEmail(),
   body('password').isLength({ min: 6 }),
-  body('firstName').trim().notEmpty(),
-  body('lastName').trim().notEmpty()
+  body('first_name').trim().notEmpty(),
+  body('last_name').trim().notEmpty()
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -20,7 +20,7 @@ router.post('/register', [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { email, password, firstName, lastName } = req.body;
+    const { email, password, first_name, last_name } = req.body;
 
     // Check if user already exists
     const existingUser = await User.findByEmail(email);
@@ -34,8 +34,8 @@ router.post('/register', [
     const user = await User.create({
       email,
       password,
-      firstName,
-      lastName
+      first_name,
+      last_name
     });
 
     // Generate JWT token
@@ -51,8 +51,8 @@ router.post('/register', [
       user: {
         id: user.id,
         email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
+        first_name: user.first_name,
+        last_name: user.last_name,
         role: user.role,
         status: user.status
       }
@@ -78,6 +78,12 @@ router.post('/login', [
 
     // Find user by email
     const user = await User.findByEmail(email);
+    console.log('Login attempt for email:', email);
+    console.log('User found:', !!user);
+    if (user) {
+      console.log('User status:', user.status);
+      console.log('Stored password hash:', user.password);
+    }
     if (!user) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
@@ -88,7 +94,9 @@ router.post('/login', [
     }
 
     // Check password
+    console.log('Attempting password comparison...');
     const isPasswordValid = await User.comparePassword(password, user.password);
+    console.log('Password valid:', isPasswordValid);
     if (!isPasswordValid) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
@@ -109,8 +117,8 @@ router.post('/login', [
       user: {
         id: user.id,
         email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
+        first_name: user.first_name,
+        last_name: user.last_name,
         role: user.role,
         status: user.status
       }
@@ -150,8 +158,8 @@ router.post('/supabase/exchange', async (req, res) => {
     // Upsert the app profile row
     const appUser = await User.upsertByEmail({
       email: supabaseUser.email,
-      firstName,
-      lastName,
+      first_name: firstName,
+      last_name: lastName,
     });
 
     if (appUser.status === 'suspended') {
@@ -174,8 +182,8 @@ router.post('/supabase/exchange', async (req, res) => {
       user: {
         id: appUser.id,
         email: appUser.email,
-        firstName: appUser.firstName,
-        lastName: appUser.lastName,
+        first_name: appUser.first_name,
+        last_name: appUser.last_name,
         role: appUser.role,
         status: appUser.status,
       },

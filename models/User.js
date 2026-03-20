@@ -3,7 +3,7 @@ const { supabase } = require('../config/supabase');
 
 class User {
   static async create(userData) {
-    const { email, password, firstName, lastName, role = 'user' } = userData;
+    const { email, password, first_name, last_name, role = 'user' } = userData;
     
     // Hash password
     const salt = await bcrypt.genSalt(10);
@@ -15,8 +15,8 @@ class User {
       .insert([{
         email: email.toLowerCase(),
         password: hashedPassword,
-        firstName: firstName,
-        lastName: lastName,
+        first_name: first_name,
+        last_name: last_name,
         role,
         status: 'active',
         created_at: new Date().toISOString()
@@ -53,7 +53,7 @@ class User {
   static async findAll() {
     const { data, error } = await supabase
       .from('users')
-      .select('id, email, firstName, lastName, role, status, created_at, last_login')
+      .select('id, email, first_name, last_name, role, status, created_at, last_login')
       .order('created_at', { ascending: false });
     
     if (error) throw error;
@@ -63,8 +63,8 @@ class User {
   static async updateById(id, updateData) {
     // Map frontend field names to database column names
     const mappedData = {};
-    if (updateData.firstName) mappedData.firstName = updateData.firstName;
-    if (updateData.lastName) mappedData.lastName = updateData.lastName;
+    if (updateData.first_name) mappedData.first_name = updateData.first_name;
+    if (updateData.last_name) mappedData.last_name = updateData.last_name;
     if (updateData.status) mappedData.status = updateData.status;
     if (updateData.last_login) mappedData.last_login = updateData.last_login;
     
@@ -95,7 +95,7 @@ class User {
 
   
   // == Upsert a profile row from Supabase auth user data. ==
-  static async upsertByEmail({ email, firstName, lastName }) {
+  static async upsertByEmail({ email, first_name, last_name }) {
     const normalizedEmail = email?.toLowerCase?.();
     if (!normalizedEmail) {
       throw new Error('Email is required for upsertByEmail');
@@ -110,8 +110,8 @@ class User {
         .insert([{
           email: normalizedEmail,
           password: null,
-          firstName: firstName || '',
-          lastName: lastName || '',
+          first_name: first_name || '',
+          last_name: last_name || '',
           role: 'user',
           status: 'active',
           created_at: new Date().toISOString(),
@@ -132,8 +132,8 @@ class User {
 
       // Only update names if we have improvements; do not touch password/role/status.
       const updates = {};
-      if (firstName && existing.firstName !== firstName) updates.firstName = firstName;
-      if (lastName && existing.lastName !== lastName) updates.lastName = lastName;
+      if (first_name && existing.first_name !== first_name) updates.first_name = first_name;
+      if (last_name && existing.last_name !== last_name) updates.last_name = last_name;
 
       if (Object.keys(updates).length === 0) return existing;
 
