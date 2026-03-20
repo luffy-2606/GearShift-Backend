@@ -44,8 +44,8 @@ router.put('/profile', userAuth, async (req, res) => {
     const { firstName, lastName } = req.body;
     
     const user = await User.updateById(req.user.userId, { 
-      first_name: firstName, 
-      last_name: lastName 
+      firstName: firstName, 
+      lastName: lastName 
     });
 
     if (!user) {
