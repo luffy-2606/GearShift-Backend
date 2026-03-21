@@ -83,8 +83,12 @@ class User {
 
   static async updateById(id, updateData) {
     const mappedData = {};
-    if (updateData.first_name) mappedData.first_name = updateData.first_name;
-    if (updateData.last_name)  mappedData.last_name  = updateData.last_name;
+    if (updateData.first_name || updateData.firstName) {
+      mappedData.first_name = updateData.first_name || updateData.firstName;
+    }
+    if (updateData.last_name || updateData.lastName) {
+      mappedData.last_name = updateData.last_name || updateData.lastName;
+    }
     if (updateData.status)     mappedData.status     = updateData.status;
     if (updateData.role)       mappedData.role       = updateData.role;
     if (updateData.last_login) mappedData.last_login = updateData.last_login;
