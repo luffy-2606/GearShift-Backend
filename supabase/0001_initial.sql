@@ -1,3 +1,6 @@
+-- Initial schema for GearShift
+-- Source: GearShift-Backend/supabase-schema.sql
+
 -- Create users table for GearShift
 CREATE TABLE users (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -5,7 +8,7 @@ CREATE TABLE users (
   password VARCHAR(255) NOT NULL,
   first_name VARCHAR(100) NOT NULL,
   last_name VARCHAR(100) NOT NULL,
-  role VARCHAR(20) DEFAULT 'user' CHECK (role IN ('user', 'admin')),
+  role VARCHAR(20) DEFAULT 'user' CHECK (role IN ('user', 'mechanic', 'admin')),
   status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'suspended')),
   google_id VARCHAR(255) UNIQUE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -33,8 +36,8 @@ CREATE POLICY "Users can update own data" ON users
 CREATE POLICY "Admins can read all users" ON users
   FOR SELECT USING (
     EXISTS (
-      SELECT 1 FROM users 
-      WHERE id = auth.uid() 
+      SELECT 1 FROM users
+      WHERE id = auth.uid()
       AND role = 'admin'
     )
   );
@@ -43,8 +46,8 @@ CREATE POLICY "Admins can read all users" ON users
 CREATE POLICY "Admins can update all users" ON users
   FOR UPDATE USING (
     EXISTS (
-      SELECT 1 FROM users 
-      WHERE id = auth.uid() 
+      SELECT 1 FROM users
+      WHERE id = auth.uid()
       AND role = 'admin'
     )
   );
@@ -53,8 +56,8 @@ CREATE POLICY "Admins can update all users" ON users
 CREATE POLICY "Admins can delete users" ON users
   FOR DELETE USING (
     EXISTS (
-      SELECT 1 FROM users 
-      WHERE id = auth.uid() 
+      SELECT 1 FROM users
+      WHERE id = auth.uid()
       AND role = 'admin'
     )
   );
@@ -62,3 +65,4 @@ CREATE POLICY "Admins can delete users" ON users
 -- Create policy for user registration (anyone can insert)
 CREATE POLICY "Enable insert for authentication" ON users
   FOR INSERT WITH CHECK (true);
+

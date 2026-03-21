@@ -1,7 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
+const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
+const { supabaseAdmin } = require('../config/supabase');
+
+const VALID_ROLES = ['user', 'mechanic', 'admin'];
 
 // Middleware to verify admin token
 const adminAuth = (req, res, next) => {
@@ -102,5 +106,98 @@ router.delete('/users/:userId', adminAuth, async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 });
+
+// Update user role (admin only)
+router.put('/users/:userId/role', adminAuth, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { role } = req.body;
+
+    if (!role || !VALID_ROLES.includes(role)) {
+      return res.status(400).json({ message: `Role must be one of: ${VALID_ROLES.join(', ')}` });
+    }
+
+    // Prevent admin from demoting themselves
+    if (userId === req.admin.userId && role !== 'admin') {
+      return res.status(400).json({ message: 'Cannot change your own admin role' });
+    }
+
+    const user = await User.updateById(userId, { role });
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.json({ message: 'Role updated successfully', user });
+  } catch (error) {
+    console.error('Error updating role:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Create a new user (admin only)
+// Creates a Supabase auth account then inserts/upserts the app profile.
+router.post(
+  '/users',
+  adminAuth,
+  [
+    body('email').isEmail().normalizeEmail(),
+    body('password').isLength({ min: 6 }),
+    body('first_name').trim().notEmpty(),
+    body('last_name').trim().notEmpty(),
+    body('role').optional().isIn(VALID_ROLES),
+  ],
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+
+      const { email, password, first_name, last_name, role = 'user' } = req.body;
+
+      // Create the Supabase auth user via the service-role admin API
+      const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: { first_name, last_name },
+      });
+
+      if (authError) {
+        // Surface duplicate-email as a friendly message
+        if (authError.message?.toLowerCase().includes('already registered')) {
+          return res.status(400).json({ message: 'A user with that email already exists' });
+        }
+        throw authError;
+      }
+
+      // Upsert the app profile row with the requested role
+      const appUser = await User.adminCreate({
+        email,
+        password,
+        first_name,
+        last_name,
+        role,
+        status: 'active',
+      });
+
+      res.status(201).json({
+        message: 'User created successfully',
+        user: {
+          id: appUser.id,
+          email: appUser.email,
+          first_name: appUser.first_name,
+          last_name: appUser.last_name,
+          role: appUser.role,
+          status: appUser.status,
+        },
+      });
+    } catch (error) {
+      console.error('Error creating user:', error);
+      res.status(500).json({ message: error.message || 'Server error' });
+    }
+  }
+);
 
 module.exports = router;
