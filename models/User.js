@@ -5,22 +5,32 @@ class User {
   static async create(userData) {
     const { email, password, first_name, last_name, role = 'user' } = userData;
     
-    // Hash password
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
+    // Create user object
+    const userObj = {
+      email: email.toLowerCase(),
+      first_name: first_name,
+      last_name: last_name,
+      role,
+      status: 'active',
+      created_at: new Date().toISOString()
+    };
+    
+    // Add password if provided (email registration)
+    if (password) {
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(password, salt);
+      userObj.password = hashedPassword;
+    }
+    
+    // Add Google ID if provided (Google registration)
+    if (googleId) {
+      userObj.google_id = googleId;
+    }
     
     // Create user in Supabase
     const { data, error } = await supabaseAdmin
       .from('users')
-      .insert([{
-        email: email.toLowerCase(),
-        password: hashedPassword,
-        first_name: first_name,
-        last_name: last_name,
-        role,
-        status: 'active',
-        created_at: new Date().toISOString()
-      }])
+      .insert([userObj])
       .select()
       .single();
     
@@ -33,6 +43,17 @@ class User {
       .from('users')
       .select('*')
       .eq('email', email.toLowerCase())
+      .single();
+    
+    if (error && error.code !== 'PGRST116') throw error;
+    return data;
+  }
+
+  static async findByGoogleId(googleId) {
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('google_id', googleId)
       .single();
     
     if (error && error.code !== 'PGRST116') throw error;
