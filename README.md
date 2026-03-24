@@ -45,7 +45,7 @@ backend/
 
 ```bash
 # 1. Clone the repo
-git clone https://github.com/naumaniqbal2005/GearShift-Backend.git
+git clone https://github.com/luffy-2606/GearShift-Backend.git
 cd GearShift-Backend
 
 # 2. Install dependencies
@@ -75,10 +75,6 @@ SUPABASE_ANON_KEY=your_supabase_anon_key_here
 SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key_here
 
 JWT_SECRET=your_jwt_secret_here
-
-GOOGLE_CLIENT_ID=your_google_client_id_here
-GOOGLE_CLIENT_SECRET=your_google_client_secret_here
-GOOGLE_CALLBACK_URL=http://localhost:5000/auth/google/callback
 
 FRONTEND_URL=http://localhost:3000
 ```
