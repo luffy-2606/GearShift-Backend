@@ -23,7 +23,8 @@ const userAuth = (req, res, next) => {
 // Get user profile
 router.get('/profile', userAuth, async (req, res) => {
   try {
-    const user = await User.findById(req.user.userId);
+    const userId = req.user.userId || req.user.id;
+    const user = await User.findById(userId);
     
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
@@ -42,8 +43,9 @@ router.get('/profile', userAuth, async (req, res) => {
 router.put('/profile', userAuth, async (req, res) => {
   try {
     const { firstName, lastName } = req.body;
+    const userId = req.user.userId || req.user.id;
     
-    const user = await User.updateById(req.user.userId, { 
+    const user = await User.updateById(userId, { 
       firstName: firstName, 
       lastName: lastName 
     });
