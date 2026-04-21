@@ -14,7 +14,7 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // Used to verify user tokens on the backend.
 // Falls back to anon client if the service role key is not yet configured;
-const supabaseAdmin = supabaseServiceKey && supabaseServiceKey !== process.env.SUPABASE_SERVICE_ROLE_KEY
+const supabaseAdmin = supabaseServiceKey
   ? createClient(supabaseUrl, supabaseServiceKey, {
       auth: { autoRefreshToken: false, persistSession: false },
     })
