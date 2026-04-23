@@ -11,7 +11,8 @@ class AppointmentController {
         service_name, 
         service_description, 
         scheduled_date,
-        customer_notes 
+        customer_notes,
+        estimated_cost
       } = req.body;
 
       const customer_id = req.user.id; // From auth middleware
@@ -59,6 +60,7 @@ class AppointmentController {
           service_description,
           scheduled_date: new Date(scheduled_date).toISOString(),
           customer_notes,
+          estimated_cost: estimated_cost || null,
           status: 'scheduled'
         }])
         .select(`
@@ -93,7 +95,28 @@ class AppointmentController {
       let query = supabaseAdmin
         .from('appointments')
         .select(`
-          *,
+          id,
+          customer_id,
+          mechanic_id,
+          shop_id,
+          vehicle_id,
+          service_id,
+          service_name,
+          service_description,
+          estimated_duration_minutes,
+          estimated_cost,
+          actual_cost,
+          actual_duration_minutes,
+          scheduled_date,
+          arrival_date,
+          start_date,
+          completion_date,
+          status,
+          priority,
+          customer_notes,
+          mechanic_notes,
+          created_at,
+          updated_at,
           shop:shops(id, name, address, phone, latitude, longitude),
           vehicle:vehicles(id, make, model, year, license_plate),
           service:services(id, name, category, estimated_duration_minutes)
