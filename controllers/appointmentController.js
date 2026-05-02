@@ -11,7 +11,8 @@ class AppointmentController {
         service_name, 
         service_description, 
         scheduled_date,
-        customer_notes 
+        customer_notes,
+        estimated_cost
       } = req.body;
 
       const customer_id = req.user.id; // From auth middleware
@@ -57,6 +58,7 @@ class AppointmentController {
           service_id,
           service_name,
           service_description,
+          estimated_cost,
           scheduled_date: new Date(scheduled_date).toISOString(),
           customer_notes,
           status: 'scheduled'
