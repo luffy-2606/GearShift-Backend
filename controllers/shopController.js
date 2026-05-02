@@ -31,10 +31,26 @@ class ShopController {
 
       if (error) throw error;
 
+      // Fetch available services for each shop
+      const shopsWithServices = await Promise.all(
+        shops.map(async (shop) => {
+          const { data: availableServices } = await supabaseAdmin
+            .from('services')
+            .select('*')
+            .in('name', shop.services_offered || [])
+            .eq('is_active', true);
+          
+          return {
+            ...shop,
+            available_services: availableServices || []
+          };
+        })
+      );
+
       // Filter by distance if coordinates provided
-      let filteredShops = shops;
+      let filteredShops = shopsWithServices;
       if (latitude && longitude) {
-        filteredShops = shops.filter(shop => {
+        filteredShops = shopsWithServices.filter(shop => {
           const distance = calculateDistance(
             parseFloat(latitude), 
             parseFloat(longitude),
