@@ -4,6 +4,25 @@ const User = require('../models/User');
 
 const MAX_MESSAGE_LENGTH = 2000;
 
+// ─── retry helper ───────────────────────────────────────────────────────────
+
+async function retryWithBackoff(fn, maxAttempts = 3, baseDelayMs = 1000) {
+  let lastError;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastError = err;
+      if (attempt < maxAttempts) {
+        const delay = baseDelayMs * Math.pow(2, attempt - 1);
+        console.warn(`Retry attempt ${attempt}/${maxAttempts} after ${delay}ms for error:`, err.message);
+        await sleep(delay);
+      }
+    }
+  }
+  throw lastError;
+}
+
 // ─── context helpers ─────────────────────────────────────────────────────────
 
 async function fetchMechanics() {
@@ -42,6 +61,18 @@ async function fetchShops() {
     average_rating: s.average_rating || null,
     description: s.description || null,
   }));
+}
+
+async function fetchMechanicsWithRetry() {
+  return retryWithBackoff(fetchMechanics, 3, 1000);
+}
+
+async function fetchShopsWithRetry() {
+  return retryWithBackoff(fetchShops, 3, 1000);
+}
+
+async function fetchUserContextWithRetry(userId) {
+  return retryWithBackoff(() => fetchUserContext(userId), 3, 1000);
 }
 
 async function fetchUserContext(userId) {
@@ -214,9 +245,18 @@ async function chat(req, res) {
 
   try {
     const [mechanics, shops, userContext] = await Promise.all([
-      fetchMechanics(),
-      fetchShops(),
-      fetchUserContext(userId),
+      fetchMechanicsWithRetry().catch(err => {
+        console.error('Failed to fetch mechanics after retries:', err);
+        return [];
+      }),
+      fetchShopsWithRetry().catch(err => {
+        console.error('Failed to fetch shops after retries:', err);
+        return [];
+      }),
+      fetchUserContextWithRetry(userId).catch(err => {
+        console.error('Failed to fetch user context after retries:', err);
+        return { profile: { name: 'User' }, vehicles: [] };
+      }),
     ]);
 
     const prompt = buildPrompt(userContext, mechanics, shops, message.trim());
@@ -235,6 +275,12 @@ async function chat(req, res) {
           'Gemini is rate-limited right now (free tier: requests per minute/day or tokens per minute). ' +
           'Wait a minute and try again, or enable billing / check quotas in Google AI Studio. ' +
           'See https://ai.google.dev/gemini-api/docs/rate-limits',
+      });
+    }
+    if (error?.code === 'EAI_AGAIN' || error?.message?.includes('EAI_AGAIN') || error?.message?.includes('getaddrinfo')) {
+      return res.status(503).json({
+        success: false,
+        message: 'Unable to connect to the database. Please check your internet connection and try again.',
       });
     }
     const status = error?.status >= 400 && error?.status < 600 ? error.status : 502;
