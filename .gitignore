@@ -7,6 +7,8 @@ node_modules/
 .env.test
 .env.production
 .env.local
+# myting
+things.txt
 
 # Logs
 npm-debug.log*
