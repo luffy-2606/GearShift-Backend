@@ -134,6 +134,54 @@ class VehicleController {
     }
   }
 
+  // Delete a vehicle owned by the customer
+  static async deleteVehicle(req, res) {
+    try {
+      const { vehicleId } = req.params;
+      const customer_id = req.user.id;
+
+      const { data: vehicle, error: fetchErr } = await supabaseAdmin
+        .from('vehicles')
+        .select('id')
+        .eq('id', vehicleId)
+        .eq('user_id', customer_id)
+        .single();
+
+      if (fetchErr || !vehicle) {
+        return res.status(404).json({
+          success: false,
+          message: 'Vehicle not found'
+        });
+      }
+
+      const { error } = await supabaseAdmin
+        .from('vehicles')
+        .delete()
+        .eq('id', vehicleId)
+        .eq('user_id', customer_id);
+
+      if (error) throw error;
+
+      res.json({
+        success: true,
+        message: 'Vehicle removed'
+      });
+    } catch (error) {
+      console.error('Delete vehicle error:', error);
+      const code = error.code || error?.cause?.code;
+      if (code === '23503') {
+        return res.status(409).json({
+          success: false,
+          message: 'This vehicle cannot be removed because it still has linked service records.'
+        });
+      }
+      res.status(500).json({
+        success: false,
+        message: 'Failed to remove vehicle'
+      });
+    }
+  }
+
   // Update vehicle mileage (after service)
   static async updateVehicleMileage(req, res) {
     try {

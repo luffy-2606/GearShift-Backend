@@ -42,12 +42,13 @@ router.get('/profile', userAuth, async (req, res) => {
 // Update user profile
 router.put('/profile', userAuth, async (req, res) => {
   try {
-    const { firstName, lastName } = req.body;
+    const { firstName, lastName, budget } = req.body;
     const userId = req.user.userId || req.user.id;
     
     const user = await User.updateById(userId, { 
       firstName: firstName, 
-      lastName: lastName 
+      lastName: lastName,
+      budget
     });
 
     if (!user) {

@@ -58,6 +58,7 @@ class AppointmentController {
           service_id,
           service_name,
           service_description,
+          estimated_cost,
           scheduled_date: new Date(scheduled_date).toISOString(),
           customer_notes,
           estimated_cost: estimated_cost || null,
@@ -247,6 +248,42 @@ class AppointmentController {
       // Get current vehicle mileage
       const currentMileage = appointment.vehicle.mileage || 0;
 
+      // Resolve canonical service and interval for immutable due mileage calculation
+      let resolvedServiceType = service_type || appointment.service_name || 'Service';
+      let resolvedServiceDescription = service_description || appointment.service_description || null;
+      let computedNextDueMileage = next_service_mileage || null;
+
+      if (appointment.service_id) {
+        const { data: serviceDef, error: serviceDefError } = await supabaseAdmin
+          .from('services')
+          .select('name, interval_miles')
+          .eq('id', appointment.service_id)
+          .single();
+
+        if (!serviceDefError && serviceDef) {
+          resolvedServiceType = serviceDef.name || resolvedServiceType;
+          if (serviceDef.interval_miles && Number(serviceDef.interval_miles) > 0) {
+            computedNextDueMileage = currentMileage + Number(serviceDef.interval_miles);
+          }
+        }
+      } else {
+        const lookupName = (service_type || appointment.service_name || '').trim();
+        if (lookupName) {
+          const { data: serviceByName, error: serviceByNameError } = await supabaseAdmin
+            .from('services')
+            .select('name, interval_miles')
+            .eq('name', lookupName)
+            .maybeSingle();
+
+          if (!serviceByNameError && serviceByName) {
+            resolvedServiceType = serviceByName.name || resolvedServiceType;
+            if (serviceByName.interval_miles && Number(serviceByName.interval_miles) > 0) {
+              computedNextDueMileage = currentMileage + Number(serviceByName.interval_miles);
+            }
+          }
+        }
+      }
+
       // Create service history entry
       const { data: serviceHistory, error } = await supabaseAdmin
         .from('service_history')
@@ -255,8 +292,8 @@ class AppointmentController {
           appointment_id: appointmentId,
           shop_id: appointment.shop_id,
           mechanic_id: appointment.shop.owner_id,
-          service_type,
-          service_description,
+          service_type: resolvedServiceType,
+          service_description: resolvedServiceDescription,
           mileage_at_service: currentMileage,
           service_date: new Date().toISOString(),
           cost: cost || 0,
@@ -267,7 +304,7 @@ class AppointmentController {
           duration_minutes: appointment.actual_duration_minutes || 60,
           notes,
           next_service_due_date: next_service_date ? new Date(next_service_date).toISOString() : null,
-          next_service_due_mileage: next_service_mileage || null
+          next_service_due_mileage: computedNextDueMileage
         }])
         .select()
         .single();

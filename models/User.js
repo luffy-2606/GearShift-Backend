@@ -89,6 +89,16 @@ class User {
     if (updateData.last_name || updateData.lastName) {
       mappedData.last_name = updateData.last_name || updateData.lastName;
     }
+    if (updateData.budget !== undefined) {
+      if (updateData.budget === null || updateData.budget === '') {
+        mappedData.budget = null;
+      } else {
+        const n = Number(updateData.budget);
+        if (Number.isFinite(n) && n >= 0) {
+          mappedData.budget = n;
+        }
+      }
+    }
     if (updateData.status)     mappedData.status     = updateData.status;
     if (updateData.role)       mappedData.role       = updateData.role;
     if (updateData.last_login) mappedData.last_login = updateData.last_login;
