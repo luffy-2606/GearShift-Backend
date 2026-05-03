@@ -169,13 +169,21 @@ async function listBookmarks(req, res) {
     if (favorites_only === '1' || favorites_only === 'true') {
       q = q.eq('is_favorite', true);
     }
-    if (tag && String(tag).trim()) {
-      q = q.contains('tags', [String(tag).trim().slice(0, MAX_TAG_LEN)]);
-    }
-
     const { data, error } = await q;
     if (error) throw error;
-    return res.json({ success: true, data: data || [] });
+
+    let results = data || [];
+
+    // Case-insensitive tag filtering (partial match)
+    if (tag && String(tag).trim()) {
+      const tagLower = String(tag).trim().toLowerCase();
+      results = results.filter(item => {
+        const tags = Array.isArray(item.tags) ? item.tags : [];
+        return tags.some(t => String(t).toLowerCase().includes(tagLower));
+      });
+    }
+
+    return res.json({ success: true, data: results });
   } catch (e) {
     console.error('listBookmarks', e);
     return res.status(500).json({ success: false, message: 'Failed to load saved items' });

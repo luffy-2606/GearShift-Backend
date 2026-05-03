@@ -12,22 +12,33 @@ class MechanicController {
         .eq('role', 'mechanic')
         .eq('status', 'active');
 
-      // Filter by service type or specialization
-      if (service_type) {
-        query = query.or(`bio.ilike.%${service_type}%`);
-      }
-      
-      if (specialization) {
-        // For array fields, we need to use different operators
-        query = query.contains('specialization', [specialization]);
-      }
-
       const { data: mechanics, error } = await query;
 
       if (error) throw error;
 
+      // Case-insensitive specialization filtering (both service_type and specialization)
+      const serviceTypeLower = service_type ? service_type.toLowerCase() : null;
+      const specializationLower = specialization ? specialization.toLowerCase() : null;
+
+      const specFiltered = mechanics.filter(mechanic => {
+        const specs = Array.isArray(mechanic.specialization)
+          ? mechanic.specialization.map(s => s.toLowerCase())
+          : mechanic.specialization
+            ? [mechanic.specialization.toLowerCase()]
+            : [];
+
+        if (serviceTypeLower && specializationLower) {
+          return specs.some(s => s === serviceTypeLower) || specs.some(s => s === specializationLower);
+        } else if (serviceTypeLower) {
+          return specs.some(s => s === serviceTypeLower);
+        } else if (specializationLower) {
+          return specs.some(s => s === specializationLower);
+        }
+        return true;
+      });
+
       // Calculate ratings and add distance if location provided
-      const processedMechanics = mechanics.map(mechanic => {
+      const processedMechanics = specFiltered.map(mechanic => {
         // Calculate distance if location provided
         let distance = null;
         if (latitude && longitude && mechanic.shop_latitude && mechanic.shop_longitude) {
