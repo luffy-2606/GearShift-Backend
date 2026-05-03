@@ -33,6 +33,7 @@ INSERT INTO users (
 -- Insert sample shops (these will be linked to the mechanics above)
 INSERT INTO shops (
   owner_id, name, description, address, latitude, longitude, phone,
+  website,
   services_offered, specialties, average_rating, total_reviews,
   is_verified, status
 ) 
@@ -48,6 +49,11 @@ SELECT
   u.shop_latitude,
   u.shop_longitude,
   u.shop_phone,
+  CASE 
+    WHEN u.first_name = 'John' THEN 'https://johns-auto-repair.example.com'
+    WHEN u.first_name = 'Sarah' THEN 'https://sarahs-car-care.example.com'
+    WHEN u.first_name = 'Mike' THEN 'https://mikes-motor-works.example.com'
+  END,
   CASE 
     WHEN u.first_name = 'John' THEN ARRAY['Oil Change', 'Brake Repair', 'Engine Repair', 'Transmission Service', 'Diagnostic']
     WHEN u.first_name = 'Sarah' THEN ARRAY['Oil Change', 'Tire Rotation', 'Battery Replacement', 'Air Filter', 'Wiper Blades']
