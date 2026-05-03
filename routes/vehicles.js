@@ -11,6 +11,7 @@ router.use(authenticateToken);
 router.get('/', VehicleController.getCustomerVehicles);
 router.post('/', VehicleController.addVehicle);
 router.get('/:vehicleId/service-history', VehicleController.getVehicleServiceHistory);
+router.delete('/:vehicleId', VehicleController.deleteVehicle);
 router.put('/:vehicleId/mileage', VehicleController.updateVehicleMileage);
 
 module.exports = router;
