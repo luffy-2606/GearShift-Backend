@@ -10,6 +10,7 @@ const vehicleRoutes = require('./routes/vehicles');
 const mechanicRoutes = require('./routes/mechanics');
 const costInsightsRoutes = require('./routes/costInsights');
 const chatRoutes = require('./routes/chat');
+const bookmarkRoutes = require('./routes/bookmarks');
 
 dotenv.config();
 
@@ -41,6 +42,7 @@ app.use('/api/vehicles', vehicleRoutes);
 app.use('/api/mechanics', mechanicRoutes);
 app.use('/api/cost-insights', costInsightsRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/bookmarks', bookmarkRoutes);
 
 // Test route
 app.get('/api/health', (req, res) => {

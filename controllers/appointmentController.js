@@ -15,7 +15,7 @@ class AppointmentController {
         estimated_cost
       } = req.body;
 
-      const customer_id = req.user.id; // From auth middleware
+      const customer_id = req.user.id ?? req.user.userId;
 
       // Validate shop exists and is active
       const { data: shop, error: shopError } = await supabaseAdmin
@@ -89,7 +89,7 @@ class AppointmentController {
   // Get customer appointments
   static async getCustomerAppointments(req, res) {
     try {
-      const customer_id = req.user.id;
+      const customer_id = req.user.id ?? req.user.userId;
       const { status } = req.query;
 
       let query = supabaseAdmin
@@ -150,7 +150,7 @@ class AppointmentController {
     try {
       const { appointmentId } = req.params;
       const { status, actual_cost, actual_duration, mechanic_notes } = req.body;
-      const customer_id = req.user.id;
+      const customer_id = req.user.id ?? req.user.userId;
 
       // Validate appointment belongs to customer
       const { data: appointment, error: checkError } = await supabaseAdmin
@@ -223,7 +223,7 @@ class AppointmentController {
         next_service_mileage 
       } = req.body;
       
-      const customer_id = req.user.id;
+      const customer_id = req.user.id ?? req.user.userId;
 
       // Get appointment details
       const { data: appointment, error: appointmentError } = await supabaseAdmin

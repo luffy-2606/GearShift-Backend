@@ -50,6 +50,14 @@ This guide explains how to set up the complete database schema for Sprint 2 feat
 **Purpose:** Market pricing data for cost comparisons
 **Features:** Location-based pricing insights with confidence levels
 
+### 9. Shops website column (optional legacy)
+**File:** `0011_ensure_shops_website_column.sql`
+**Purpose:** Ensures `shops.website` exists on older databases
+
+### 10. User saved items (favorites / bookmarks)
+**File:** `0012_create_user_saved_items.sql`
+**Purpose:** Polymorphic bookmarks (shops, mechanics, appointments, cost insights, quote snapshots, part bundles) with tags, notes, favorites, `updated_at` for cross-device sync via API
+
 ## How to Run Migrations
 
 ### Step 1: Access Supabase SQL Editor
@@ -71,6 +79,8 @@ Execute each migration file sequentially:
 -- 7. 0008_create_service_history_table.sql
 -- 8. 0009_create_reviews_table.sql
 -- 9. 0010_create_cost_insights_table.sql
+-- 10. 0011_ensure_shops_website_column.sql (if needed)
+-- 11. 0012_create_user_saved_items.sql
 ```
 
 **Important:** Run each migration separately and wait for it to complete before running the next one.
@@ -89,7 +99,8 @@ users (enhanced)
 │   ├── services
 │   └── reviews
 ├── reviews (ratings system)
-└── cost_insights (market pricing - standalone)
+├── cost_insights (market pricing - standalone)
+└── user_saved_items (favorites / bookmarks per customer)
 ```
 
 ## Feature Implementation Support
