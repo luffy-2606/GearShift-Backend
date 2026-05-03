@@ -1,4 +1,4 @@
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+const OpenAI = require('openai');
 const { supabaseAdmin } = require('../config/supabase');
 const User = require('../models/User');
 
@@ -177,52 +177,22 @@ Rules:
 - Keep replies short and direct — this is a chat interface, not a report.
 - Do not reveal raw JSON or internal data structures to the user.`;
 
-function parseRetryDelayMs(error) {
-  const msg = String(error?.message || '');
-  const m = msg.match(/Please retry in ([\d.]+)s/i);
-  if (m) {
-    return Math.min(60000, Math.ceil(parseFloat(m[1]) * 1000) + 800);
-  }
-  const details = error?.errorDetails;
-  if (Array.isArray(details)) {
-    const ri = details.find((d) => String(d?.['@type'] || '').includes('RetryInfo'));
-    if (ri?.retryDelay) {
-      const raw = String(ri.retryDelay).replace(/s$/i, '').trim();
-      const sec = parseFloat(raw);
-      if (!Number.isNaN(sec)) return Math.min(60000, Math.ceil(sec * 1000) + 800);
-    }
-  }
-  return 12000;
-}
-
 async function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-/** Call Gemini with a few retries on 429 (free-tier RPM / daily caps). */
-async function generateGeminiReply(genAI, modelName, prompt) {
-  const maxAttempts = 3;
-  let lastError;
-  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-    const model = genAI.getGenerativeModel({
-      model: modelName,
-      systemInstruction: SYSTEM_INSTRUCTION,
-    });
-    try {
-      const result = await model.generateContent(prompt);
-      return result.response.text();
-    } catch (err) {
-      lastError = err;
-      if (err?.status === 429 && attempt < maxAttempts) {
-        const waitMs = parseRetryDelayMs(err);
-        console.warn(`Chat: Gemini 429, retry ${attempt}/${maxAttempts} after ${waitMs}ms`);
-        await sleep(waitMs);
-        continue;
-      }
-      throw err;
-    }
-  }
-  throw lastError;
+/** Call Groq — single attempt, no retry. */
+async function generateGroqReply(client, modelName, userMessage) {
+  const completion = await client.chat.completions.create({
+    model: modelName,
+    messages: [
+      { role: 'system', content: SYSTEM_INSTRUCTION },
+      { role: 'user', content: userMessage },
+    ],
+    temperature: 0.7,
+    max_tokens: 1024,
+  });
+  return completion.choices[0]?.message?.content || '';
 }
 
 // ─── controller ──────────────────────────────────────────────────────────────
@@ -237,7 +207,7 @@ async function chat(req, res) {
     return res.status(400).json({ success: false, message: `Message must be under ${MAX_MESSAGE_LENGTH} characters.` });
   }
 
-  if (!process.env.GEMINI_API_KEY) {
+  if (!process.env.GROQ_API_KEY) {
     return res.status(503).json({ success: false, message: 'Chat service is not configured.' });
   }
 
@@ -261,9 +231,12 @@ async function chat(req, res) {
 
     const prompt = buildPrompt(userContext, mechanics, shops, message.trim());
 
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const modelName = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
-    const reply = await generateGeminiReply(genAI, modelName, prompt);
+    const groqClient = new OpenAI({
+      apiKey: process.env.GROQ_API_KEY,
+      baseURL: 'https://api.groq.com/openai/v1',
+    });
+    const modelName = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
+    const reply = await generateGroqReply(groqClient, modelName, prompt);
 
     return res.json({ success: true, reply });
   } catch (error) {
@@ -272,9 +245,7 @@ async function chat(req, res) {
       return res.status(429).json({
         success: false,
         message:
-          'Gemini is rate-limited right now (free tier: requests per minute/day or tokens per minute). ' +
-          'Wait a minute and try again, or enable billing / check quotas in Google AI Studio. ' +
-          'See https://ai.google.dev/gemini-api/docs/rate-limits',
+          'Chat is rate-limited right now. Please wait a moment and try again.',
       });
     }
     if (error?.code === 'EAI_AGAIN' || error?.message?.includes('EAI_AGAIN') || error?.message?.includes('getaddrinfo')) {
