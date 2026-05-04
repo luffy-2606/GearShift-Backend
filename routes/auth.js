@@ -169,7 +169,7 @@ router.post('/supabase/exchange', async (req, res) => {
 
     // Issue backend JWT (same shape as email/password login)
     const token = jwt.sign(
-      { userId: appUser.id, email: appUser.email, role: appUser.role },
+      { id: appUser.id, email: appUser.email, role: appUser.role },
       process.env.JWT_SECRET,
       { expiresIn: '24h' }
     );
